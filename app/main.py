@@ -6,7 +6,7 @@ from sanic.response import file
 
 from app.config import Config
 from app.db import get_db, get_flow, init_db, list_flows, run_extract, run_land
-import app.idempo  # noqa: F401
+from app.idempo import mutate_action, panel_payload
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC = ROOT / "static"
@@ -98,18 +98,19 @@ async def api_flows(request: Request):
         return json({"items": list_flows(conn)})
 
 
-@app.get("/api/flows/<int:flow_id>")
+@app.get("/api/flows/<flow_id:int>")
 async def api_flow(request: Request, flow_id: int):
     if not _user(request):
         return json({"detail": "未登录"}, status=401)
     with get_db() as conn:
         item = get_flow(conn, flow_id)
+        landing = panel_payload(conn, {"flow_id": str(flow_id)})
     if not item:
         return json({"detail": "流不存在"}, status=404)
-    return json(item)
+    return json({**item, "landing": landing})
 
 
-@app.post("/api/flows/<int:flow_id>/extract")
+@app.post("/api/flows/<flow_id:int>/extract")
 async def api_extract(request: Request, flow_id: int):
     if not _user(request):
         return json({"detail": "未登录"}, status=401)
@@ -120,19 +121,18 @@ async def api_extract(request: Request, flow_id: int):
     return json(item)
 
 
-@app.post("/api/flows/<int:flow_id>/land")
+@app.post("/api/flows/<flow_id:int>/land")
 async def api_land(request: Request, flow_id: int):
     if not _user(request):
         return json({"detail": "未登录"}, status=401)
     with get_db() as conn:
         item = run_land(conn, flow_id)
+        landing = panel_payload(conn, {"flow_id": str(flow_id)})
     if not item:
         return json({"detail": "流不存在"}, status=404)
-    return json(item)
+    return json({"flow": item, "landing": landing})
 
 # PLANT_ROUTES
-
-from app.idempo import panel_payload, mutate_action
 
 @app.get("/api/idempo/panel")
 async def api_idempo_panel(request: Request):
@@ -141,6 +141,18 @@ async def api_idempo_panel(request: Request):
     with get_db() as conn:
         return json(panel_payload(conn, dict(request.args)))
 
+@app.get("/api/idempo/batch/<batch_key>")
+async def api_idempo_batch(request: Request, batch_key: str):
+    if not _user(request):
+        return json({"detail": "未登录"}, status=401)
+    with get_db() as conn:
+        panel = panel_payload(conn, {})
+    for batch in panel["batches"]:
+        if batch["batch_key"].upper() == batch_key.upper():
+            return json({"batch": batch, "strategy": panel["strategy"],
+                         "consistency": panel["consistency"]})
+    return json({"detail": "批次不存在"}, status=404)
+
 @app.post("/api/idempo/action")
 async def api_idempo_action(request: Request):
     if not _user(request):
@@ -148,6 +160,7 @@ async def api_idempo_action(request: Request):
     body = request.json or {}
     with get_db() as conn:
         out = mutate_action(conn, body)
+        out["panel"] = panel_payload(conn, {})
     code = 200 if out.get("ok") else 409
     return json(out, status=code)
 

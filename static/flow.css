@@ -37,4 +37,36 @@ label { display:block; margin:.7rem 0; }
 input { width:100%; margin-top:.3rem; padding:.5rem .65rem; border:1px solid var(--line); border-radius:8px; }
 .err { color:#b91c1c; min-height:1.2rem; }
 .hint { color:#3f6b63; }
+.banner { margin: .6rem 1.2rem 0; padding:.55rem .8rem; border-radius:8px; font-size:.9rem; }
+.banner.ok { background:#d7efe8; border:1px solid #9fd6c6; }
+.banner.warn { background:#fdf3d6; border:1px solid #e6cf8a; color:#6b4f09; }
+.banner.err { background:#fbe4e4; border:1px solid #e7a9a9; color:#8f1d1d; }
+.strategy { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.9rem 1.1rem; margin-bottom:.8rem; }
+.strategy-head { display:flex; align-items:baseline; gap:.8rem; flex-wrap:wrap; }
+.strategy-head h2 { margin:0; font-size:1.05rem; }
+.rules { margin:.5rem 0 0; padding-left:1.1rem; font-size:.86rem; color:#3f6b63; }
+.rules li { margin:.15rem 0; }
+.panel-head { display:flex; justify-content:space-between; align-items:baseline; gap:.6rem; flex-wrap:wrap; }
+.panel-head h3, .panel-head h4 { margin:0 0 .4rem; }
+.strategy-tag { font-size:.78rem; padding:.12rem .5rem; border-radius:999px; background:#d7efe8; color:#0f5f57; }
+.subcard { margin-top:1rem; padding:.85rem; border:1px dashed var(--line); border-radius:10px; }
+.tbl { width:100%; border-collapse:collapse; font-size:.86rem; margin-top:.4rem; }
+.tbl th, .tbl td { text-align:left; padding:.4rem .45rem; border-bottom:1px solid var(--line); vertical-align:top; }
+.tbl th { color:#3f6b63; font-weight:600; }
+.tbl .num { text-align:right; font-variant-numeric: tabular-nums; }
+.batch-row { cursor:pointer; }
+.batch-row:hover td { background:#fff; }
+.chip-ok { background:#cdece1; }
+.chip-warn { background:#fbe9bd; color:#6b4f09; }
+.chip-pending { background:#e3e9f6; color:#33456b; }
+.chip-muted { background:#e4e7e6; color:#4a5654; }
+.chip-err { background:#f7d3d3; color:#8f1d1d; }
+.keylist, .events { list-style:none; padding:0; margin:.4rem 0; max-height:260px; overflow:auto; }
+.keyrow { display:flex; justify-content:space-between; gap:.6rem; padding:.22rem .3rem; border-bottom:1px dashed var(--line); }
+.keyrow.skipped { background:#fffbf0; }
+.events li { padding:.15rem 0; font-size:.78rem; }
+.crumbs { font-size:.82rem; margin-bottom:.4rem; }
+button.danger { background:#b45309; border-color:#b45309; }
+button.danger:disabled, button:disabled { opacity:.45; cursor:not-allowed; }
+.list-panel { margin-top:1rem; }
 @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }

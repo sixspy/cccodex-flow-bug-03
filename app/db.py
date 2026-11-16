@@ -1,6 +1,8 @@
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
+
+from app import idempo
 from app.config import Config
 
 SEEDS = [
@@ -13,8 +15,9 @@ SEEDS = [
 def connect(db_path=None):
     path = db_path or Config.database()
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path, check_same_thread=False)
+    conn = sqlite3.connect(path, check_same_thread=False, timeout=10)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA busy_timeout=10000")
     return conn
 
 @contextmanager
@@ -66,19 +69,24 @@ def run_extract(conn, flow_id: int):
         return None
     if item["status"] in ("待抽取", "抽取失败"):
         n = 15 + (flow_id * 4) % 10
-        conn.execute(
-            "UPDATE flows SET status=?, extracted=?, landed=0 WHERE id=?",
-            ("已抽取待落库", n, flow_id),
-        )
+        # 重新抽取即视为新批次：旧批次库存整笔撤销，避免列表与库存分叉。
+        # 撤销与状态更新同事务、同流锁，避免与并发落库交错。
+        with idempo.flow_guard(conn, flow_id):
+            idempo.revoke_inventory(conn, flow_id, guard=False)
+            conn.execute(
+                "UPDATE flows SET status=?, extracted=?, landed=0 WHERE id=?",
+                ("已抽取待落库", n, flow_id),
+            )
     return get_flow(conn, flow_id)
 
 def run_land(conn, flow_id: int):
+    """落库统一走整批原子口径，列表与库存同事务对齐。
+
+    已落库的批次再次落库会走撞钥判定：整批跳过并计数，不重复写入。
+    """
     item = get_flow(conn, flow_id)
     if not item:
         return None
-    if item["status"] == "已抽取待落库":
-        conn.execute(
-            "UPDATE flows SET status=?, landed=? WHERE id=?",
-            ("已落库", item["extracted"], flow_id),
-        )
+    if item["status"] in ("已抽取待落库", "已落库"):
+        idempo.land_batch(conn, flow_id)
     return get_flow(conn, flow_id)
